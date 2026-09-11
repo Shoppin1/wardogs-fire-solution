@@ -7,6 +7,7 @@ import { getWeapon, WEAPONS, SOURCE_COMMIT, SOURCE_REPO } from './data';
 import { loadState, saveState, DEFAULT_STATE, type PersistedState } from './storage';
 import { posToShareString, copyText } from './clipboard';
 import { computeImpactCorrection, impactCorrectionText } from './impact';
+import { loadTerrain, terrainAvailable, deltaZ } from './terrain';
 
 // Field model: each coordinate input keeps a digit buffer for the ATM mask.
 interface CoordField {
@@ -68,6 +69,8 @@ const els = {
   salvoAddBtn: $('salvoAddBtn') as HTMLButtonElement,
   salvoClearBtn: $('salvoClearBtn') as HTMLButtonElement,
   salvoList: $('salvoList'),
+  terrainMapSelect: $('terrainMapSelect') as HTMLSelectElement,
+  dzDisplay: $('dzDisplay'),
   resultBearing: $('resultBearing'),
   resultDistance: $('resultDistance'),
   resultDistanceSub: $('resultDistanceSub'),
@@ -262,6 +265,7 @@ function update(): void {
   renderHistory();
   renderSalvo();
   updateImpactVisibility();
+  updateDeltaZ();
   if (mapApi) mapApi.setPositions(currentGun(), currentTarget());
 }
 
@@ -673,6 +677,61 @@ els.salvoClearBtn.addEventListener('click', () => {
   renderSalvo();
 });
 
+// ---------- Terrain / Delta-Z ----------
+
+let terrainMapId: string = '';
+
+els.terrainMapSelect.addEventListener('change', () => {
+  terrainMapId = els.terrainMapSelect.value;
+  if (terrainMapId) {
+    void loadTerrain(terrainMapId).then((ok) => {
+      if (!ok) {
+        els.dzDisplay.textContent = 'Höhendaten für diese Karte nicht verfügbar (offline?).';
+        els.dzDisplay.classList.remove('is-large');
+        els.dzDisplay.hidden = false;
+        return;
+      }
+      update();
+    });
+  } else {
+    els.dzDisplay.hidden = true;
+  }
+  saveState(state);
+  update();
+});
+
+function updateDeltaZ(): void {
+  const gun = currentGun();
+  const target = currentTarget();
+  if (!terrainMapId || !terrainAvailable(terrainMapId) || !gun || !target) {
+    els.dzDisplay.hidden = true;
+    return;
+  }
+  const dz = deltaZ(terrainMapId, gun.x, gun.y, target.x, target.y);
+  if (dz === null) {
+    els.dzDisplay.textContent = 'Keine Höhendaten an dieser Stelle.';
+    els.dzDisplay.classList.remove('is-large');
+    els.dzDisplay.hidden = false;
+    return;
+  }
+  const abs = Math.abs(dz);
+  const sign = dz >= 0 ? '+' : '-';
+  const big = abs >= 30;
+  els.dzDisplay.classList.toggle('is-large', big);
+  els.dzDisplay.innerHTML = '';
+  const main = document.createElement('span');
+  main.textContent = `ΔZ ${sign}${Math.round(abs * 10) / 10} m`;
+  els.dzDisplay.appendChild(main);
+  const hint = document.createElement('span');
+  hint.className = 'dz-hint';
+  hint.textContent = dz >= 0
+    ? 'Ziel liegt höher als die Gun. Steilere Flugbahn, Schuss kann kurz ausfallen.'
+    : 'Ziel liegt tiefer als die Gun. Flachere Flugbahn, Schuss kann weit ausfallen.';
+  if (big) hint.textContent += ' Erster Schuss = Einschießen.';
+  els.dzDisplay.appendChild(hint);
+  els.dzDisplay.hidden = false;
+}
+
 // ---------- Map (optional, lazy) ----------
 
 const MAPS = [
@@ -716,6 +775,11 @@ async function loadMap(): Promise<void> {
       setFieldValue(gunX, Math.round(p.x * 100) / 100, true);
       setFieldValue(gunY, Math.round(p.y * 100) / 100, true);
       update();
+    },
+    onMapChange: (mapId: string) => {
+      els.terrainMapSelect.value = mapId;
+      terrainMapId = mapId;
+      if (terrainMapId) void loadTerrain(terrainMapId).then(() => update());
     }
   });
   mapLoaded = true;
@@ -739,6 +803,11 @@ els.dataCredit.textContent = `Feuerdaten: apollyon-sys/wardogs-calculator (MIT),
 restore();
 renderSaved();
 renderSalvo();
+if (state.terrainMapId) {
+  els.terrainMapSelect.value = state.terrainMapId;
+  terrainMapId = state.terrainMapId;
+  void loadTerrain(terrainMapId).then(() => update());
+}
 update();
 updateImpactVisibility();
 checkMapAssets();

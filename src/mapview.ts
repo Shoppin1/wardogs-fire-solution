@@ -24,6 +24,7 @@ export interface MapViewOptions {
   getTarget: () => Pos | null;
   onTargetPick: (p: Pos) => void;
   onGunPick: (p: Pos) => void;
+  onMapChange?: (mapId: string) => void;
 }
 
 const TILE_SIZE = 256;
@@ -116,7 +117,10 @@ export function createMapView(opts: MapViewOptions): {
     }).addTo(map);
   }
 
-  selectEl.addEventListener('change', () => loadTiles(selectEl.value));
+  selectEl.addEventListener('change', () => {
+    loadTiles(selectEl.value);
+    if (opts.onMapChange) opts.onMapChange(selectEl.value);
+  });
 
   function setPositions(gun: Pos | null, target: Pos | null): void {
     if (!map) return;

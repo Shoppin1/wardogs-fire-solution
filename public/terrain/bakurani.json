@@ -1,0 +1,12 @@
+{
+  "mapId": "bakurani",
+  "res": 2048,
+  "metersPerPixel": 8.0,
+  "hMinMeters": -1007.5009591725795,
+  "hMaxMeters": 184.9296875,
+  "noData": 0,
+  "validPixels": 4161600,
+  "sourceCommit": "7965b3ee5b3b88a3936ffe13a3ce17e92899d793",
+  "note": "Heights are offset-datum, only Delta-Z is meaningful. 0 = no data.",
+  "encoding": "level = 1 + round((z - hMin) / (hMax - hMin) * 254), z = hMin + (level - 1) / 254 * (hMax - hMin)"
+}

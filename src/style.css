@@ -320,6 +320,23 @@ body {
   padding: 4px 8px;
 }
 
+/* Terrain / Delta-Z */
+.terrain-context { margin-top: 16px; }
+.dz-display {
+  margin: 8px 0 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.dz-display.is-large { color: var(--warn); }
+.dz-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  display: block;
+  margin-top: 2px;
+}
+
 /* Result panel */
 .result-row {
   display: flex;

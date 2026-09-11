@@ -12,6 +12,7 @@ export interface PersistedState {
   history: { x: number; y: number }[]; // last targets, newest first, max 5
   savedTargets: SavedTarget[];
   salvo: { x: number; y: number }[];
+  terrainMapId: string;
 }
 
 export interface SavedTarget {
@@ -30,7 +31,8 @@ export const DEFAULT_STATE: PersistedState = {
   stepSph2: 25,
   history: [],
   savedTargets: [],
-  salvo: []
+  salvo: [],
+  terrainMapId: ''
 };
 
 export function loadState(): PersistedState {
