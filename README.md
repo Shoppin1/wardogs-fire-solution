@@ -37,7 +37,7 @@ Karte (optional): Toggle "Karte anzeigen". Linksklick setzt das Ziel, Rechtsklic
 - Feuertabellen: [apollyon-sys/wardogs-calculator](https://github.com/apollyon-sys/wardogs-calculator), Commit `7965b3ee5b3b88a3936ffe13a3ce17e92899d793`, **MIT-Lizenz**, Copyright (c) 2026 Apollyon. Kopie in `data/firing-tables.json`, Schema-Doku in `data/data.schema.md`.
 - Projekt-Code: MIT, siehe `LICENSE`.
 - **WARDOGS-Spielassets (Kartenbilder) sind NICHT unter MIT.** Die Kartenansicht lädt Tiles vom Asset-CDN des Quell-Repos (`assets.wardogs-artillery.com`). Es werden keine Kartenassets in diesem Repo gebündelt. Ohne erreichbares CDN blendet die App den Karten-Toggle automatisch aus, alles andere funktioniert weiter.
-- Community-Daten, nicht offiziell. Erster Schuss = Einschießen. Höhenunterschied zwischen Geschütz und Ziel wird nicht berücksichtigt.
+- Community-Daten, nicht offiziell. Erster Schuss = Einschießen. Höhenunterschied (ΔZ) wird angezeigt, aber nicht automatisch in MILS verrechnet.
 
 ## Entwicklung
 
