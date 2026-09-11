@@ -22,7 +22,7 @@
 
     <section class="panel" id="inputPanel">
       <div class="pair" id="gunPair">
-        <h2 class="pair-title">Meine Position</h2>
+        <h2 class="pair-title"><span aria-hidden="true">◉</span> Meine Position</h2>
         <div class="pair-fields">
           <label class="field">
             <span>X</span>
@@ -45,7 +45,7 @@
       </div>
 
       <div class="pair" id="targetPair">
-        <h2 class="pair-title">Ziel</h2>
+        <h2 class="pair-title"><span aria-hidden="true">◎</span> Ziel</h2>
         <div class="pair-fields">
           <label class="field">
             <span>X</span>
@@ -141,6 +141,7 @@
     </section>
 
     <section class="result panel" id="resultPanel" aria-live="polite">
+      <div class="range-badge" id="rangeBadge" hidden></div>
       <div class="result-row">
         <div class="result-cell">
           <span class="result-label">Richtung</span>
@@ -171,6 +172,7 @@
           </label>
           <span class="map-cursor" id="mapCursor"></span>
         </div>
+        <p class="map-hint">Klick: Ziel setzen · Rechtsklick: eigene Position · Marker (G/Z) ziehen: Position verschieben</p>
         <div id="mapView" class="map-view" tabindex="0"></div>
       </div>
     </section>

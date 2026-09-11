@@ -24,6 +24,8 @@ export interface MapViewOptions {
   getTarget: () => Pos | null;
   onTargetPick: (p: Pos) => void;
   onGunPick: (p: Pos) => void;
+  onTargetDrag?: (p: Pos) => void;
+  onGunDrag?: (p: Pos) => void;
   onMapChange?: (mapId: string) => void;
 }
 
@@ -61,17 +63,17 @@ export function createMapView(opts: MapViewOptions): {
   let rings: L.Circle[] = [];
   let currentMapId = maps[0].id;
 
-  function makeIcon(color: string): L.DivIcon {
+  function makeIcon(color: string, symbol: string): L.DivIcon {
     return L.divIcon({
       className: 'wd-marker',
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.8)"></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#000">${symbol}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
     });
   }
 
-  const gunIcon = makeIcon('#38bdf8');
-  const targetIcon = makeIcon('#f87171');
+  const gunIcon = makeIcon('#38bdf8', 'G');
+  const targetIcon = makeIcon('#f87171', 'Z');
 
   function initMap(): void {
     if (map) return;
@@ -137,12 +139,20 @@ export function createMapView(opts: MapViewOptions): {
       gunMarker = L.marker(gameToLatLng(gun.x, gun.y), { icon: gunIcon, draggable: true }).addTo(map);
       gunMarker.on('drag', (e) => {
         const p = latLngToGame(e.target.getLatLng().lat, e.target.getLatLng().lng);
-        opts.onGunPick(p);
+        if (opts.onGunDrag) opts.onGunDrag(p); // live fields only, no marker rebuild
+      });
+      gunMarker.on('dragend', (e) => {
+        const p = latLngToGame(e.target.getLatLng().lat, e.target.getLatLng().lng);
+        opts.onGunPick(p); // full update incl. marker rebuild
       });
     }
     if (target) {
       targetMarker = L.marker(gameToLatLng(target.x, target.y), { icon: targetIcon, draggable: true }).addTo(map);
       targetMarker.on('drag', (e) => {
+        const p = latLngToGame(e.target.getLatLng().lat, e.target.getLatLng().lng);
+        if (opts.onTargetDrag) opts.onTargetDrag(p);
+      });
+      targetMarker.on('dragend', (e) => {
         const p = latLngToGame(e.target.getLatLng().lat, e.target.getLatLng().lng);
         opts.onTargetPick(p);
       });

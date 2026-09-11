@@ -78,6 +78,7 @@ const els = {
   resultMilsSub: $('resultMilsSub'),
   milsCell: $('milsCell'),
   arcExtra: $('arcExtra'),
+  rangeBadge: $('rangeBadge'),
   statusMsg: $('statusMsg'),
   mapToggle: $('mapToggle') as HTMLButtonElement,
   mapHost: $('mapHost'),
@@ -96,6 +97,49 @@ function setFieldValue(f: CoordField, v: number | null, viaMask: boolean): void 
     f.buffer = String(Math.round(v * 100)).padStart(1, '');
   }
   f.el.value = v === null ? '' : formatGame(v);
+}
+
+// Live-update a field during map drag without persisting or rebuilding the map.
+function setFieldValueQuiet(f: CoordField, v: number): void {
+  f.value = v;
+  f.buffer = String(Math.max(0, Math.round(v * 100)));
+  f.el.value = formatGame(v);
+  showFieldError(f, outOfRange(v));
+}
+
+// Result-only refresh during map drag: no persist(), no map marker rebuild.
+function updateResultOnly(): void {
+  const gun = currentGun();
+  const target = currentTarget();
+  if (!gun || !target) return;
+  const sol = computeSolution(gun, target);
+  els.resultBearing.textContent = sol.bearingStr;
+  els.resultDistance.textContent = fmtInt(sol.distanceM) + ' m';
+  const weapon = getWeapon(currentWeaponId());
+  const results = weapon.arcs.map((a) => interpolateMils(a, sol.distanceM));
+  const okArcs = results.filter((r) => r.status === 'ok');
+  if (okArcs.length > 0) {
+    els.resultMils.textContent = String(okArcs[0].mils);
+    els.resultMils.classList.remove('is-warn');
+    els.statusMsg.hidden = true;
+  } else {
+    els.resultMils.textContent = '--';
+    els.resultMils.classList.add('is-warn');
+  }
+  // Range badge too
+  const allBounds = results.map((r) => ({ min: r.minM, max: r.maxM }));
+  const globalMin = Math.min(...allBounds.map((b) => b.min));
+  const globalMax = Math.max(...allBounds.map((b) => b.max));
+  if (okArcs.length > 0) {
+    els.rangeBadge.textContent = `✓ In Reichweite · ${fmtInt(sol.distanceM)} m von ${fmtInt(globalMin)}-${fmtInt(globalMax)} m`;
+    els.rangeBadge.className = 'range-badge is-ok';
+  } else {
+    els.rangeBadge.textContent = sol.distanceM < globalMin
+      ? `✗ Außer Reichweite: zu nah (${fmtInt(sol.distanceM)} m, min ${fmtInt(globalMin)} m)`
+      : `✗ Außer Reichweite: zu weit (${fmtInt(sol.distanceM)} m, max ${fmtInt(globalMax)} m)`;
+    els.rangeBadge.className = 'range-badge is-out';
+  }
+  els.rangeBadge.hidden = false;
 }
 
 function showFieldError(f: CoordField, bad: boolean): void {
@@ -215,6 +259,24 @@ function update(): void {
   const results = weapon.arcs.map((a) => interpolateMils(a, sol.distanceM));
   const okArcs = results.filter((r) => r.status === 'ok');
 
+  // Range badge (apollyon-style): always show in/out of range with limits
+  const allBounds = results.map((r) => ({ min: r.minM, max: r.maxM }));
+  const globalMin = Math.min(...allBounds.map((b) => b.min));
+  const globalMax = Math.max(...allBounds.map((b) => b.max));
+  if (okArcs.length > 0) {
+    const arcInfo = okArcs.length > 1 ? ` (${okArcs.length} Ballistiken)` : '';
+    els.rangeBadge.textContent = `✓ In Reichweite${arcInfo} · ${fmtInt(sol.distanceM)} m von ${fmtInt(globalMin)}-${fmtInt(globalMax)} m`;
+    els.rangeBadge.className = 'range-badge is-ok';
+    els.rangeBadge.hidden = false;
+  } else {
+    const tooClose = sol.distanceM < globalMin;
+    els.rangeBadge.textContent = tooClose
+      ? `✗ Außer Reichweite: zu nah (${fmtInt(sol.distanceM)} m, min ${fmtInt(globalMin)} m)`
+      : `✗ Außer Reichweite: zu weit (${fmtInt(sol.distanceM)} m, max ${fmtInt(globalMax)} m)`;
+    els.rangeBadge.className = 'range-badge is-out';
+    els.rangeBadge.hidden = false;
+  }
+
   if (okArcs.length === 0) {
     const tooClose = results.filter((r) => r.status === 'too-close');
     const tooFar = results.filter((r) => r.status === 'too-far');
@@ -276,6 +338,7 @@ function clearResult(): void {
   els.resultMils.textContent = '--';
   els.resultMilsSub.textContent = '';
   els.resultMils.classList.remove('is-warn');
+  els.rangeBadge.hidden = true;
   els.statusMsg.hidden = true;
   els.arcExtra.hidden = true;
   els.corrections.hidden = true;
@@ -769,6 +832,18 @@ async function loadMap(): Promise<void> {
       setFieldValue(targetX, Math.round(p.x * 100) / 100, true);
       setFieldValue(targetY, Math.round(p.y * 100) / 100, true);
       update();
+    },
+    onTargetDrag: (p: Pos) => {
+      // Live update fields + result while dragging, without rebuilding markers
+      setFieldValueQuiet(targetX, p.x);
+      setFieldValueQuiet(targetY, p.y);
+      updateResultOnly();
+    },
+    onGunDrag: (p: Pos) => {
+      if (state.gunLocked) return;
+      setFieldValueQuiet(gunX, p.x);
+      setFieldValueQuiet(gunY, p.y);
+      updateResultOnly();
     },
     onGunPick: (p: Pos) => {
       if (state.gunLocked) return;

@@ -77,14 +77,23 @@ body {
 /* Input pairs */
 .pair {
   margin-bottom: 16px;
+  border-left: 4px solid var(--border);
+  padding-left: 12px;
+  border-radius: 4px;
 }
 .pair-title {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-dim);
   margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+#gunPair { border-left-color: #38bdf8; }
+#gunPair .pair-title { color: #38bdf8; }
+#targetPair { border-left-color: #f87171; }
+#targetPair .pair-title { color: #f87171; }
 .pair-fields {
   display: flex;
   gap: 12px;
@@ -117,6 +126,8 @@ body {
   outline: none;
   border-color: var(--accent);
 }
+#gunPair .coord-input:focus { border-color: #38bdf8; }
+#targetPair .coord-input:focus { border-color: #f87171; }
 .coord-input.is-locked {
   opacity: 0.55;
   border-style: dashed;
@@ -338,6 +349,25 @@ body {
 }
 
 /* Result panel */
+.range-badge {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.range-badge.is-ok {
+  background: #14532d;
+  color: #86efac;
+  border: 1px solid #22c55e;
+}
+.range-badge.is-out {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #ef4444;
+}
 .result-row {
   display: flex;
   gap: 8px;
@@ -457,6 +487,11 @@ body {
 }
 .map-view .leaflet-container {
   background: #000;
+}
+.map-hint {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
 }
 
 /* Badge + footer */
