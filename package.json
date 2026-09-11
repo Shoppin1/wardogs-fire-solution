@@ -1,0 +1,24 @@
+{
+  "name": "wardogs-fire-solution",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Second-screen fire direction calculator for WARDOGS (L81 mortar, SPH-2). Unofficial fan tool.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.12",
+    "leaflet": "^1.9.4"
+  }
+}

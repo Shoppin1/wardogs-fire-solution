@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>WARDOGS Feuerleitrechner</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>Feuerleitrechner</h1>
+      <div class="weapon-select" id="weaponSelect" role="radiogroup" aria-label="Waffe">
+        <button class="weapon-btn is-active" data-weapon="mortar" role="radio" aria-checked="true">L81-Mörser</button>
+        <button class="weapon-btn" data-weapon="sph2" role="radio" aria-checked="false">SPH-2</button>
+      </div>
+    </header>
+
+    <section class="panel" id="inputPanel">
+      <div class="pair" id="gunPair">
+        <h2 class="pair-title">Meine Position</h2>
+        <div class="pair-fields">
+          <label class="field">
+            <span>X</span>
+            <input id="gunX" class="coord-input" inputmode="numeric" enterkeyhint="next"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+          <label class="field">
+            <span>Y</span>
+            <input id="gunY" class="coord-input" inputmode="numeric" enterkeyhint="next"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+        </div>
+        <button class="lock-btn" id="lockGun" aria-pressed="false">Position fixieren</button>
+      </div>
+
+      <div class="pair" id="targetPair">
+        <h2 class="pair-title">Ziel</h2>
+        <div class="pair-fields">
+          <label class="field">
+            <span>X</span>
+            <input id="targetX" class="coord-input" inputmode="numeric" enterkeyhint="next"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+          <label class="field">
+            <span>Y</span>
+            <input id="targetY" class="coord-input" inputmode="numeric" enterkeyhint="done"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+        </div>
+        <button class="clear-btn" id="newTarget">Neues Ziel</button>
+      </div>
+
+      <p class="range-msg" id="rangeMsg" hidden></p>
+
+      <div class="corrections" id="corrections" hidden>
+        <button class="corr-btn" id="corrShort">Zu kurz (+<span id="corrStepShort">10</span> m)</button>
+        <button class="corr-btn" id="corrFar">Zu weit (-<span id="corrStepFar">25</span> m)</button>
+        <label class="step-edit">
+          <span>Schrittweite</span>
+          <input id="stepInput" class="step-input" inputmode="numeric" value="10" />
+          <span>m</span>
+        </label>
+      </div>
+
+      <div class="history" id="history" hidden>
+        <h3 class="history-title">Letzte Ziele</h3>
+        <div class="history-chips" id="historyChips"></div>
+      </div>
+    </section>
+
+    <section class="result panel" id="resultPanel" aria-live="polite">
+      <div class="result-row">
+        <div class="result-cell">
+          <span class="result-label">Richtung</span>
+          <span class="result-value" id="resultBearing">--</span>
+        </div>
+        <div class="result-cell">
+          <span class="result-label">Distanz</span>
+          <span class="result-value" id="resultDistance">--</span>
+          <span class="result-sub" id="resultDistanceSub"></span>
+        </div>
+        <div class="result-cell" id="milsCell">
+          <span class="result-label">MILS</span>
+          <span class="result-value" id="resultMils">--</span>
+          <span class="result-sub" id="resultMilsSub"></span>
+        </div>
+      </div>
+      <div class="arc-extra" id="arcExtra" hidden></div>
+      <p class="status-msg" id="statusMsg" hidden></p>
+    </section>
+
+    <section class="panel map-section" id="mapSection">
+      <button class="map-toggle" id="mapToggle" hidden>Karte anzeigen</button>
+      <div id="mapHost" hidden>
+        <div class="map-controls">
+          <label class="map-select">
+            <span>Karte</span>
+            <select id="mapSelect"></select>
+          </label>
+          <span class="map-cursor" id="mapCursor"></span>
+        </div>
+        <div id="mapView" class="map-view" tabindex="0"></div>
+      </div>
+    </section>
+
+    <aside class="badge">
+      Community-Daten, nicht offiziell. Erster Schuss = Einschießen. Höhenunterschied wird nicht berücksichtigt.
+    </aside>
+
+    <footer class="footer" id="footer">
+      <p>Inoffizielles Fan-Tool, nicht verbunden mit BULKHEAD oder Team17.</p>
+      <p id="dataCredit"></p>
+    </footer>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
