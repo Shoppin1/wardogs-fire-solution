@@ -10,6 +10,15 @@ export interface PersistedState {
   stepL81: number;
   stepSph2: number;
   history: { x: number; y: number }[]; // last targets, newest first, max 5
+  savedTargets: SavedTarget[];
+  salvo: { x: number; y: number }[];
+}
+
+export interface SavedTarget {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
 }
 
 export const DEFAULT_STATE: PersistedState = {
@@ -19,7 +28,9 @@ export const DEFAULT_STATE: PersistedState = {
   target: null,
   stepL81: 10,
   stepSph2: 25,
-  history: []
+  history: [],
+  savedTargets: [],
+  salvo: []
 };
 
 export function loadState(): PersistedState {

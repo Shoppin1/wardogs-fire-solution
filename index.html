@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark" />
   <title>WARDOGS Feuerleitrechner</title>
+  <link rel="manifest" href="/wardogs-fire-solution/manifest.webmanifest" />
+  <link rel="icon" href="/wardogs-fire-solution/icon.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#0d1117" />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
@@ -35,6 +38,12 @@
         <button class="lock-btn" id="lockGun" aria-pressed="false">Position fixieren</button>
       </div>
 
+      <div class="pair-actions">
+        <button class="pair-btn" id="swapBtn">Swap</button>
+        <button class="pair-btn" id="copyGunBtn">Pos. kopieren</button>
+        <button class="pair-btn" id="resetBtn">Reset</button>
+      </div>
+
       <div class="pair" id="targetPair">
         <h2 class="pair-title">Ziel</h2>
         <div class="pair-fields">
@@ -49,7 +58,10 @@
                    autocomplete="off" spellcheck="false" placeholder="0,00" />
           </label>
         </div>
-        <button class="clear-btn" id="newTarget">Neues Ziel</button>
+        <div class="pair-actions">
+          <button class="clear-btn" id="newTarget">Neues Ziel</button>
+          <button class="pair-btn" id="copyTargetBtn">Ziel kopieren</button>
+        </div>
       </div>
 
       <p class="range-msg" id="rangeMsg" hidden></p>
@@ -67,6 +79,48 @@
       <div class="history" id="history" hidden>
         <h3 class="history-title">Letzte Ziele</h3>
         <div class="history-chips" id="historyChips"></div>
+      </div>
+
+      <div class="saved" id="savedSection">
+        <h3 class="history-title">Gespeicherte Ziele</h3>
+        <div class="saved-row">
+          <input id="savedName" class="saved-name" placeholder="Name (z.B. Brücke Nord)" maxlength="40" enterkeyhint="done" />
+          <button class="pair-btn" id="saveTargetBtn">Ziel speichern</button>
+        </div>
+        <div class="history-chips" id="savedChips"></div>
+        <div class="saved-actions">
+          <button class="pair-btn" id="exportBtn">Export</button>
+          <button class="pair-btn" id="importBtn">Import</button>
+          <input type="file" id="importFile" accept="application/json" hidden />
+        </div>
+      </div>
+
+      <div class="impact" id="impactSection" hidden>
+        <h3 class="history-title">Einschießen: Einschlag korrigieren</h3>
+        <p class="impact-hint">Einschlagskoordinate laut Beobachtung eingeben. App berechnet Korrektur zum eigentlichen Ziel.</p>
+        <div class="pair-fields">
+          <label class="field">
+            <span>X</span>
+            <input id="impactX" class="coord-input coord-input-sm" inputmode="numeric" enterkeyhint="next"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+          <label class="field">
+            <span>Y</span>
+            <input id="impactY" class="coord-input-sm" inputmode="numeric" enterkeyhint="done"
+                   autocomplete="off" spellcheck="false" placeholder="0,00" />
+          </label>
+          <button class="pair-btn" id="impactApply">Korrektur übernehmen</button>
+        </div>
+        <p class="impact-result" id="impactResult" hidden></p>
+      </div>
+
+      <div class="salvo" id="salvoSection">
+        <h3 class="history-title">Salvo-Planung</h3>
+        <div class="saved-row">
+          <button class="pair-btn" id="salvoAddBtn">Aktuelles Ziel hinzufügen</button>
+          <button class="pair-btn" id="salvoClearBtn">Liste leeren</button>
+        </div>
+        <ol class="salvo-list" id="salvoList"></ol>
       </div>
     </section>
 
@@ -114,6 +168,13 @@
       <p id="dataCredit"></p>
     </footer>
   </main>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/wardogs-fire-solution/sw.js').catch(() => {});
+      });
+    }
+  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

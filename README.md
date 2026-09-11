@@ -14,9 +14,14 @@ Second-Screen-Feuerleitrechner für [WARDOGS](https://store.steampowered.com/app
 - ATM-Eingabemaske: nur Ziffern tippen, Komma wird automatisch gesetzt (1678 → 16,78). Einfügen von `X80,00 Y70,00` füllt beide Felder eines Paares
 - "Position fixieren": eigene Position bleibt über Ziele hinweg gespeichert
 - "Neues Ziel": leert nur die Zielfelder
+- **Swap / Pos. kopieren / Reset**: Positionen tauschen, als `x80,31, y69,29` in die Zwischenablage kopieren (Spiel-Format), alles leeren
 - Korrekturen "Zu kurz" / "Zu weit": verschiebt das Ziel entlang der Schusslinie (Standard 10 m L81, 25 m SPH-2, einstellbar)
+- **Einschießen**: beobachtete Einschlagskoordinate eingeben, App berechnet die Korrektur (klassisches Bracketing: neues Ziel = Ziel + (Ziel - Einschlag)) und übernimmt es
+- **Gespeicherte Ziele**: benannte Ziele, antippbar laden, Rechtsklick löschen, Export/Import als JSON
+- **Salvo-Planung**: Zielsequenz aufbauen, je Eintrag Richtung/Distanz zur aktuellen Gun, antippbar
 - Verlauf der letzten 5 Ziele als antippbare Chips
 - Optional: Kartenansicht (Bakurani, Ozeti, Zestafona) mit Markern, Verbindungslinie und Reichweitenringen, lazyl geladen. App funktioniert vollständig ohne Karte
+- **PWA**: installierbar auf Handy/Zweitmonitor, App-Shell funktioniert offline (Karte braucht Netz)
 - Alles lokal (localStorage), kein Tracking, keine Analytics, kein Backend
 
 ## Nutzung

@@ -211,6 +211,115 @@ body {
 .chip:hover { border-color: var(--accent); }
 .chip .chip-result { color: var(--accent); font-weight: 700; }
 
+/* Pair actions (swap, copy, reset) */
+.pair-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.pair-btn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+.pair-btn:hover { border-color: var(--accent); }
+.pair-btn:active { background: var(--border); }
+.pair-btn.is-active {
+  background: #14532d;
+  border-color: var(--accent);
+  color: #dcfce7;
+}
+
+/* Saved targets */
+.saved { margin-top: 16px; }
+.saved-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.saved-name {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 1rem;
+  min-width: 0;
+}
+.saved-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.saved-actions .pair-btn { flex: 0 1 auto; }
+
+/* Impact correction (bracketing) */
+.impact { margin-top: 16px; }
+.impact-hint {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin: 0 0 8px;
+}
+.coord-input-sm {
+  font-size: 1.05rem;
+  min-height: 44px;
+  padding: 8px 6px;
+  flex: 1;
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.coord-input-sm:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.impact-result {
+  margin: 10px 0 0;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Salvo planning */
+.salvo { margin-top: 16px; }
+.salvo-list {
+  margin: 8px 0 0;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.salvo-item {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.salvo-item .salvo-sol { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.salvo-item .salvo-del {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
 /* Result panel */
 .result-row {
   display: flex;

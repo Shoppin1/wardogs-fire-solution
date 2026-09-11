@@ -5,6 +5,8 @@ import { computeSolution, interpolateMils, shiftTarget, isValidCoord, type Pos }
 import { digitsToValue, popDigit, pushDigit, formatGame, parseCoordString, parseGamePair, outOfRange } from './coords';
 import { getWeapon, WEAPONS, SOURCE_COMMIT, SOURCE_REPO } from './data';
 import { loadState, saveState, DEFAULT_STATE, type PersistedState } from './storage';
+import { posToShareString, copyText } from './clipboard';
+import { computeImpactCorrection, impactCorrectionText } from './impact';
 
 // Field model: each coordinate input keeps a digit buffer for the ATM mask.
 interface CoordField {
@@ -39,6 +41,10 @@ const els = {
   weaponBtns: Array.from(document.querySelectorAll<HTMLButtonElement>('.weapon-btn')),
   lockGun: $('lockGun') as HTMLButtonElement,
   newTarget: $('newTarget') as HTMLButtonElement,
+  swapBtn: $('swapBtn') as HTMLButtonElement,
+  copyGunBtn: $('copyGunBtn') as HTMLButtonElement,
+  copyTargetBtn: $('copyTargetBtn') as HTMLButtonElement,
+  resetBtn: $('resetBtn') as HTMLButtonElement,
   rangeMsg: $('rangeMsg'),
   corrections: $('corrections'),
   corrShort: $('corrShort') as HTMLButtonElement,
@@ -48,6 +54,20 @@ const els = {
   stepInput: $('stepInput') as HTMLInputElement,
   history: $('history'),
   historyChips: $('historyChips'),
+  savedName: $('savedName') as HTMLInputElement,
+  saveTargetBtn: $('saveTargetBtn') as HTMLButtonElement,
+  savedChips: $('savedChips'),
+  exportBtn: $('exportBtn') as HTMLButtonElement,
+  importBtn: $('importBtn') as HTMLButtonElement,
+  importFile: $('importFile') as HTMLInputElement,
+  impactSection: $('impactSection'),
+  impactX: $('impactX') as HTMLInputElement,
+  impactY: $('impactY') as HTMLInputElement,
+  impactApply: $('impactApply') as HTMLButtonElement,
+  impactResult: $('impactResult'),
+  salvoAddBtn: $('salvoAddBtn') as HTMLButtonElement,
+  salvoClearBtn: $('salvoClearBtn') as HTMLButtonElement,
+  salvoList: $('salvoList'),
   resultBearing: $('resultBearing'),
   resultDistance: $('resultDistance'),
   resultDistanceSub: $('resultDistanceSub'),
@@ -240,6 +260,8 @@ function update(): void {
 
   persist();
   renderHistory();
+  renderSalvo();
+  updateImpactVisibility();
   if (mapApi) mapApi.setPositions(currentGun(), currentTarget());
 }
 
@@ -410,6 +432,247 @@ els.stepInput.addEventListener('input', () => {
   }
 });
 
+// ---------- Swap / Copy / Reset ----------
+
+els.swapBtn.addEventListener('click', () => {
+  const g = currentGun();
+  const t = currentTarget();
+  if (!g || !t) return;
+  setFieldValue(gunX, t.x, true);
+  setFieldValue(gunY, t.y, true);
+  setFieldValue(targetX, g.x, true);
+  setFieldValue(targetY, g.y, true);
+  update();
+});
+
+els.copyGunBtn.addEventListener('click', () => {
+  const g = currentGun();
+  if (!g) return;
+  void copyText(posToShareString(g)).then(() => flashBtn(els.copyGunBtn, 'Kopiert'));
+});
+
+els.copyTargetBtn.addEventListener('click', () => {
+  const t = currentTarget();
+  if (!t) return;
+  void copyText(posToShareString(t)).then(() => flashBtn(els.copyTargetBtn, 'Kopiert'));
+});
+
+els.resetBtn.addEventListener('click', () => {
+  for (const f of fields) {
+    f.buffer = '';
+    f.value = null;
+    f.el.value = '';
+    f.el.classList.remove('is-error');
+  }
+  state.gun = null;
+  state.target = null;
+  update();
+  gunX.el.focus();
+});
+
+function flashBtn(btn: HTMLButtonElement, text: string): void {
+  const old = btn.textContent;
+  btn.textContent = text;
+  setTimeout(() => { btn.textContent = old; }, 900);
+}
+
+// ---------- Saved targets ----------
+
+function saveCurrentTarget(): void {
+  const t = currentTarget();
+  if (!t) return;
+  const name = els.savedName.value.trim() || `Ziel ${state.savedTargets.length + 1}`;
+  state.savedTargets.unshift({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    x: Math.round(t.x * 100) / 100,
+    y: Math.round(t.y * 100) / 100
+  });
+  state.savedTargets = state.savedTargets.slice(0, 50);
+  els.savedName.value = '';
+  persist();
+  renderSaved();
+}
+
+function renderSaved(): void {
+  els.savedChips.innerHTML = '';
+  for (const s of state.savedTargets) {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.innerHTML = `<strong>${escapeHtml(s.name)}</strong><br><span class="chip-result">X${formatGame(s.x)} Y${formatGame(s.y)}</span>`;
+    chip.addEventListener('click', () => {
+      setFieldValue(targetX, s.x, true);
+      setFieldValue(targetY, s.y, true);
+      update();
+    });
+    chip.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      state.savedTargets = state.savedTargets.filter((o) => o.id !== s.id);
+      persist();
+      renderSaved();
+    });
+    els.savedChips.appendChild(chip);
+  }
+}
+
+function escapeHtml(s: string): string {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+els.saveTargetBtn.addEventListener('click', saveCurrentTarget);
+els.savedName.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') saveCurrentTarget();
+});
+
+els.exportBtn.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ savedTargets: state.savedTargets }, null, 2)], {
+    type: 'application/json'
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wardogs-ziele.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+els.importBtn.addEventListener('click', () => els.importFile.click());
+els.importFile.addEventListener('change', () => {
+  const file = els.importFile.files?.[0];
+  if (!file) return;
+  void file.text().then((txt) => {
+    try {
+      const data = JSON.parse(txt);
+      const incoming = Array.isArray(data) ? data : data.savedTargets;
+      if (!Array.isArray(incoming)) throw new Error('bad format');
+      const valid = incoming.filter(
+        (s: { x?: unknown; y?: unknown; name?: unknown }) =>
+          typeof s?.x === 'number' && typeof s?.y === 'number' && isValidCoord(s.x) && isValidCoord(s.y)
+      );
+      const existing = new Set(state.savedTargets.map((s) => `${s.x}|${s.y}`));
+      for (const s of valid) {
+        const key = `${s.x}|${s.y}`;
+        if (existing.has(key)) continue;
+        existing.add(key);
+        state.savedTargets.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: String(s.name ?? 'Importiert'),
+          x: s.x,
+          y: s.y
+        });
+      }
+      persist();
+      renderSaved();
+    } catch {
+      els.impactResult.textContent = 'Import fehlgeschlagen: ungültiges JSON.';
+      els.impactResult.hidden = false;
+    }
+  });
+  els.importFile.value = '';
+});
+
+// ---------- Impact correction (Einschießen) ----------
+
+function attachImpactMask(): void {
+  for (const el of [els.impactX, els.impactY]) {
+    let buf = '';
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        buf = buf.slice(0, -1);
+        el.value = buf === '' ? '' : formatGame(digitsToValue(buf)!);
+      } else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        if (buf.length >= 5) return;
+        buf += e.key;
+        el.value = formatGame(digitsToValue(buf)!);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        els.impactApply.click();
+      }
+    });
+    el.addEventListener('input', () => {
+      const v = parseCoordString(el.value).value;
+      if (v !== null) {
+        buf = String(Math.round(v * 100));
+        el.value = formatGame(v);
+      }
+    });
+  }
+}
+attachImpactMask();
+
+function updateImpactVisibility(): void {
+  els.impactSection.hidden = !(currentGun() && currentTarget());
+}
+
+els.impactApply.addEventListener('click', () => {
+  const gun = currentGun();
+  const target = currentTarget();
+  const ix = parseCoordString(els.impactX.value).value;
+  const iy = parseCoordString(els.impactY.value).value;
+  if (!gun || !target || ix === null || iy === null) {
+    els.impactResult.textContent = 'Gun, Ziel und Einschlag benötigt.';
+    els.impactResult.hidden = false;
+    return;
+  }
+  const c = computeImpactCorrection(gun, target, { x: ix, y: iy });
+  els.impactResult.textContent = impactCorrectionText(c);
+  els.impactResult.hidden = false;
+  // Apply: set corrected aim point as new target
+  setFieldValue(targetX, c.newTarget.x, true);
+  setFieldValue(targetY, c.newTarget.y, true);
+  update();
+});
+
+// ---------- Salvo planning ----------
+
+function renderSalvo(): void {
+  els.salvoList.innerHTML = '';
+  const gun = currentGun();
+  state.salvo.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'salvo-item';
+    let solTxt = '';
+    if (gun) {
+      const s = computeSolution(gun, t);
+      solTxt = `${s.bearingStr} / ${fmtInt(s.distanceM)} m`;
+    }
+    li.innerHTML = `<span>${i + 1}. X${formatGame(t.x)} Y${formatGame(t.y)}</span>
+      <span class="salvo-sol">${solTxt}</span>
+      <button class="salvo-del" aria-label="Entfernen">×</button>`;
+    const del = li.querySelector('.salvo-del')!;
+    del.addEventListener('click', () => {
+      state.salvo.splice(i, 1);
+      persist();
+      renderSalvo();
+    });
+    li.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).classList.contains('salvo-del')) return;
+      setFieldValue(targetX, t.x, true);
+      setFieldValue(targetY, t.y, true);
+      update();
+    });
+    els.salvoList.appendChild(li);
+  });
+}
+
+els.salvoAddBtn.addEventListener('click', () => {
+  const t = currentTarget();
+  if (!t) return;
+  const dup = state.salvo.some((s) => Math.abs(s.x - t.x) < 0.005 && Math.abs(s.y - t.y) < 0.005);
+  if (!dup) state.salvo.push({ x: Math.round(t.x * 100) / 100, y: Math.round(t.y * 100) / 100 });
+  persist();
+  renderSalvo();
+});
+
+els.salvoClearBtn.addEventListener('click', () => {
+  state.salvo = [];
+  persist();
+  renderSalvo();
+});
+
 // ---------- Map (optional, lazy) ----------
 
 const MAPS = [
@@ -474,5 +737,8 @@ els.dataCredit.textContent = `Feuerdaten: apollyon-sys/wardogs-calculator (MIT),
 // ---------- Boot ----------
 
 restore();
+renderSaved();
+renderSalvo();
 update();
+updateImpactVisibility();
 checkMapAssets();
