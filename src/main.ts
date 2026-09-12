@@ -8,6 +8,7 @@ import { loadState, saveState, DEFAULT_STATE, type PersistedState } from './stor
 import { posToShareString, copyText } from './clipboard';
 import { computeImpactCorrection, impactCorrectionText } from './impact';
 import { loadTerrain, terrainAvailable, deltaZ } from './terrain';
+import { BUNDLED_MAX_ZOOM, MAX_TILE_ZOOM } from './maptiles';
 
 // Field model: each coordinate input keeps a digit buffer for the ATM mask.
 interface CoordField {
@@ -797,13 +798,14 @@ function updateDeltaZ(): void {
 
 // ---------- Map (optional, lazy) ----------
 
-// Tile host for the optional map view. Empty by default and therefore off:
-// map imagery is a WARDOGS game asset (not MIT, not bundled here), and the
-// upstream public CDN answers 403 to requests from other origins, so it must
-// not be used as a tile host for this app. Point VITE_TILE_BASE at a host you
-// are allowed to use; it must serve the same layout as the upstream pyramid,
-// <base>/<map>/zoom_<z>/<x>_<y>.webp with zoom 0..7.
-const ASSET_BASE: string = import.meta.env.VITE_TILE_BASE ?? '';
+// Tiles are served from public/tiles by default, bundled down to
+// BUNDLED_MAX_ZOOM (see scripts/download-tiles.py). The upstream CDN answers
+// 403 to other origins and must not be used as a tile host for this app; if
+// you have a host of your own serving the full pyramid, point VITE_TILE_BASE
+// at it. Layout either way: <base>/<map>/zoom_<z>/<x>_<y>.webp.
+const CUSTOM_TILE_BASE: string = import.meta.env.VITE_TILE_BASE ?? '';
+const ASSET_BASE = CUSTOM_TILE_BASE || `${import.meta.env.BASE_URL}tiles`;
+const TILE_MAX_NATIVE_ZOOM = CUSTOM_TILE_BASE ? MAX_TILE_ZOOM : BUNDLED_MAX_ZOOM;
 
 const MAPS = [
   { id: 'bakurani', name: 'Bakurani' },
@@ -813,10 +815,6 @@ const MAPS = [
 
 // Toggle stays hidden until a first tile confirms the host actually serves us.
 function checkMapAssets(): void {
-  if (!ASSET_BASE) {
-    els.mapToggle.hidden = true;
-    return;
-  }
   const probe = new Image();
   probe.onload = () => { els.mapToggle.hidden = false; };
   probe.onerror = () => { els.mapToggle.hidden = true; };
@@ -836,6 +834,7 @@ async function loadMap(): Promise<void> {
     cursorEl: els.mapCursor as HTMLElement,
     selectEl: els.mapSelect as HTMLSelectElement,
     maps: MAPS,
+    maxNativeZoom: TILE_MAX_NATIVE_ZOOM,
     getGun: currentGun,
     getTarget: currentTarget,
     onTargetPick: (p: Pos) => {

@@ -20,8 +20,8 @@ Second-Screen-Feuerleitrechner für [WARDOGS](https://store.steampowered.com/app
 - **Gespeicherte Ziele**: benannte Ziele, antippbar laden, Rechtsklick löschen, Export/Import als JSON
 - **Salvo-Planung**: Zielsequenz aufbauen, je Eintrag Richtung/Distanz zur aktuellen Gun, antippbar
 - Verlauf der letzten 5 Ziele als antippbare Chips
-- Optional: Kartenansicht (Bakurani, Ozeti, Zestafona) mit Markern, Verbindungslinie und Reichweitenringen, lazy geladen. **Standardmäßig aus**, weil keine Kartenkacheln mitgeliefert werden (siehe Kartenkacheln). App funktioniert vollständig ohne Karte
-- **PWA**: installierbar auf Handy/Zweitmonitor, App-Shell und ΔZ-Heightmaps funktionieren offline (Kartenkacheln brauchen Netz)
+- Optional: Kartenansicht (Bakurani, Ozeti, Zestafona) mit Markern, Verbindungslinie und Reichweitenringen, lazy geladen. Kacheln liegen im Repo (8 m/Pixel). App funktioniert vollständig ohne Karte
+- **PWA**: installierbar auf Handy/Zweitmonitor, funktioniert offline (Kacheln und Heightmaps werden beim ersten Ansehen gecacht)
 - Alles lokal (localStorage), kein Tracking, keine Analytics, kein Backend
 
 ## Nutzung
@@ -30,27 +30,29 @@ Feld maske: einfach Ziffern eintippen. `1678` zeigt live `0,01` > `0,16` > `1,67
 
 Sobald alle vier Werte gültig sind, erscheinen Richtung, Distanz und MILS. Außerhalb der Tabellengrenzen: Statusmeldung "Zu nah / Zu weit", kein Wert.
 
-Karte (optional): Der Toggle "Karte anzeigen" erscheint nur, wenn ein Tile-Host konfiguriert ist (siehe Kartenkacheln). Dann: Linksklick setzt das Ziel, Rechtsklick die eigene Position, Marker ziehen aktualisiert die Felder.
+Karte (optional): Toggle "Karte anzeigen". Linksklick setzt das Ziel, Rechtsklick die eigene Position, Marker ziehen aktualisiert die Felder.
 
 ΔZ-Anzeige: unabhängig von der Karte. Unter "Karte / Höhen" eine Karte wählen, die Heightmaps liegen im Repo.
 
 ## Kartenkacheln
 
-Die Kartenansicht ist standardmäßig aus und der Toggle ausgeblendet: es werden keine Kartenbilder mitgeliefert, und das öffentliche CDN des Quell-Projekts (`assets.wardogs-artillery.com`) beantwortet Anfragen von fremden Origins mit **HTTP 403** (Hotlink-Schutz). Dieses CDN darf deshalb nicht als Tile-Host für diese App verwendet werden.
+Die Kacheln liegen unter `public/tiles/<karte>/zoom_<z>/<x>_<y>.webp` im Repo, Zoom 0 bis 3. Das sind 2048 px je Kartenkante, also 8 m/Pixel, dieselbe Auflösung wie die Terrain-Heightmaps. Zusammen 255 Kacheln, rund 9,5 MiB. Leaflet skaliert darüber hinaus noch zwei Stufen hoch, tiefer wird nicht nachgeladen.
 
-Wer Karten will, braucht einen eigenen Tile-Host mit demselben Layout wie das Upstream-Pyramid:
+Nachladen oder tiefer holen:
 
+```bash
+python3 scripts/download-tiles.py --max-zoom 3
 ```
-<base>/<karte>/zoom_<z>/<x>_<y>.webp     # z = 0..7, 2^z Kacheln je Kante
-```
 
-Die Pyramide deckt den Weltausschnitt X/Y `-0,03 .. 163,81` bzw. `-0,01 .. 163,83` ab (`src/maptiles.ts`). Host beim Build setzen:
+Das volle Upstream-Pyramid geht bis Zoom 7 (32768 px je Kante, 21.845 Kacheln je Karte) und ist zum Bündeln viel zu groß. Die Pyramide deckt den Weltausschnitt X/Y `-0,03 .. 163,81` bzw. `-0,01 .. 163,83` ab (`src/maptiles.ts`).
+
+Wer die volle Tiefe will, braucht einen eigenen Tile-Host mit demselben Layout und setzt ihn beim Build:
 
 ```bash
 VITE_TILE_BASE=https://dein-tile-host.example npm run build
 ```
 
-Kartenbilder sind WARDOGS-Spielassets und nicht MIT-lizenziert. Vor dem Hosten Rechte klären.
+Das öffentliche CDN des Quell-Projekts (`assets.wardogs-artillery.com`) beantwortet Anfragen von fremden Origins mit **HTTP 403** (Hotlink-Schutz) und taugt deshalb nicht als Laufzeit-Host. Kartenbilder sind WARDOGS-Spielassets und nicht MIT-lizenziert, siehe `NOTICE`.
 
 ## Datenquelle und Lizenz
 
@@ -59,7 +61,7 @@ Kurzfassung hier, vollständige Aufstellung in `NOTICE`.
 - Projekt-Code: MIT, siehe `LICENSE`.
 - Feuertabellen: [apollyon-sys/wardogs-calculator](https://github.com/apollyon-sys/wardogs-calculator), Commit `7965b3ee5b3b88a3936ffe13a3ce17e92899d793`, **MIT-Lizenz**, Copyright (c) 2026 Apollyon. Kopie in `data/firing-tables.json`, Schema-Doku in `data/data.schema.md`.
 - **Terrain-Heightmaps (`public/terrain/*.png`) sind im Repo gebündelt und NICHT unter MIT.** Sie sind aus den WARDOGS-Landscape-Collision-Daten des Quell-Projekts abgeleitet (auf 8 m/Pixel heruntergerechnet) und damit Spieldaten. Sie speisen nur die ΔZ-Anzeige; es wird ausschließlich die Differenz zweier Punkte angezeigt, nie eine absolute Höhe.
-- **Kartenkacheln sind NICHT gebündelt, NICHT unter MIT und standardmäßig deaktiviert.** Siehe nächster Abschnitt.
+- **Kartenkacheln (`public/tiles/`) sind gebündelt und NICHT unter MIT.** WARDOGS-Spielassets, siehe Abschnitt Kartenkacheln.
 - Community-Daten, nicht offiziell. Erster Schuss = Einschießen. Höhenunterschied (ΔZ) wird angezeigt, aber nicht automatisch in MILS verrechnet.
 
 ## Entwicklung
@@ -78,7 +80,7 @@ Repo hat einen Workflow (`.github/workflows/deploy.yml`), der bei Push auf `main
 1. Repo-Settings → Pages → Source: **GitHub Actions**
 2. Nach dem ersten Workflow-Lauf ist die App unter `https://shoppin1.github.io/wardogs-fire-solution/` erreichbar
 
-Ohne konfigurierten Tile-Host: einfach deployen, der Karten-Toggle bleibt ausgeblendet, der Rest inklusive ΔZ funktioniert.
+Die Kacheln liegen im Repo, es ist nichts weiter zu konfigurieren.
 
 ## Feuertabellen nach Game-Patch aktualisieren
 

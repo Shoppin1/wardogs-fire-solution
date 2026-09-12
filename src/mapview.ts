@@ -8,7 +8,7 @@ import type { Pos } from './calc';
 import { arcBounds } from './calc';
 import { formatGame } from './coords';
 import { getWeapon } from './data';
-import { MAX_TILE_ZOOM, SX, SY, TILE_BOUNDS, TILE_SIZE, tileUrlTemplate } from './maptiles';
+import { SX, SY, TILE_BOUNDS, TILE_SIZE, ZOOM_BEYOND_TILES, tileUrlTemplate } from './maptiles';
 
 export interface MapConfig {
   id: string;
@@ -21,6 +21,7 @@ export interface MapViewOptions {
   cursorEl: HTMLElement;
   selectEl: HTMLSelectElement;
   maps: MapConfig[];
+  maxNativeZoom: number; // deepest pyramid level the tile host actually serves
   getGun: () => Pos | null;
   getTarget: () => Pos | null;
   onTargetPick: (p: Pos) => void;
@@ -51,7 +52,8 @@ function latLngToGame(lat: number, lng: number): Pos {
 export function createMapView(opts: MapViewOptions): {
   setPositions: (gun: Pos | null, target: Pos | null) => void;
 } {
-  const { mapHost, cursorEl, selectEl, maps } = opts;
+  const { mapHost, cursorEl, selectEl, maps, maxNativeZoom } = opts;
+  const maxZoom = maxNativeZoom + ZOOM_BEYOND_TILES;
 
   // Map selector
   for (const m of maps) {
@@ -86,7 +88,7 @@ export function createMapView(opts: MapViewOptions): {
     map = L.map(mapHost, {
       crs: GAME_CRS,
       minZoom: 0,
-      maxZoom: MAX_TILE_ZOOM,
+      maxZoom,
       zoomControl: true,
       attributionControl: false
     });
@@ -116,7 +118,8 @@ export function createMapView(opts: MapViewOptions): {
       // Upstream asset layout: <map>/zoom_<z>/<x>_<y>.webp, 2^z tiles per side.
       tileSize: TILE_SIZE,
       minZoom: 0,
-      maxZoom: MAX_TILE_ZOOM,
+      maxZoom,
+      maxNativeZoom, // upscale beyond this instead of requesting missing tiles
       noWrap: true,
       bounds: L.latLngBounds(
         gameToLatLng(TILE_BOUNDS.minX, TILE_BOUNDS.minY),

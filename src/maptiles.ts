@@ -4,6 +4,13 @@
 export const TILE_SIZE = 256;
 export const MAX_TILE_ZOOM = 7; // upstream pyramid is zoom_0 .. zoom_7
 
+// Depth actually bundled in public/tiles: 2048 px per map edge, 8 m/pixel,
+// the same resolution as the terrain heightmaps. See scripts/download-tiles.py.
+export const BUNDLED_MAX_ZOOM = 3;
+
+// How far past the deepest available tile the map may still zoom, upscaling.
+export const ZOOM_BEYOND_TILES = 2;
+
 // World extent covered by the tile pyramid, identical for all three maps
 // (maps/<id>.json -> tileBounds in apollyon-sys/wardogs-calculator).
 export const TILE_BOUNDS = { minX: -0.03, maxX: 163.81, minY: -0.01, maxY: 163.83 };

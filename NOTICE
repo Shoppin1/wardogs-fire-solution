@@ -19,12 +19,16 @@ third-party material is redistributed or loaded under separate terms.
    datum, so the app only ever displays the difference between two points
    (Delta-Z), never an absolute elevation.
 
-3. Map tiles -- not bundled
+3. Map tiles -- public/tiles/<map>/zoom_<z>/<x>_<y>.webp
 
-   The optional map view loads tiles at runtime from the upstream project's
-   asset CDN (assets.wardogs-artillery.com). These are WARDOGS game assets and
-   remain the property of their respective copyright holders. No map imagery is
-   redistributed in this repository, and the service worker does not cache it.
+   Bundled in this repository, zoom 0..3 only (2048 px per map edge, 8 m/pixel),
+   downloaded from the upstream project's asset CDN by scripts/download-tiles.py.
+   These are WARDOGS game assets, are NOT covered by the MIT License above, and
+   remain the property of their respective copyright holders.
+
+   The upstream CDN rejects requests from other origins (HTTP 403), so it is not
+   used as a runtime tile host. Set VITE_TILE_BASE at build time to serve tiles
+   from a host of your own instead.
 
 WARDOGS and related names, marks and assets belong to their respective owners.
 This is an unofficial fan tool, not affiliated with, endorsed by or authorised

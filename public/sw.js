@@ -1,6 +1,6 @@
-// PWA: offline-capable app shell. Map tiles are NOT cached (remote CDN,
-// license not MIT). The app's own static assets are precached; the terrain
-// heightmaps are same-origin and cached on first use by the fetch handler.
+// PWA: offline-capable app shell. The app's own static assets are precached;
+// the terrain heightmaps and map tiles are same-origin and cached on first use
+// by the fetch handler, so a map you have looked at once also works offline.
 
 const CACHE = 'wardogs-fire-solution-v1';
 const APP_PREFIX = '/wardogs-fire-solution/';
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Same-origin app assets only. Never cache third-party assets (map tiles).
+  // Same-origin app assets only, never third-party hosts.
   if (url.origin !== self.location.origin) return;
   if (!url.pathname.startsWith(APP_PREFIX)) return;
   if (event.request.method !== 'GET') return;
