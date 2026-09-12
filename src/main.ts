@@ -797,20 +797,30 @@ function updateDeltaZ(): void {
 
 // ---------- Map (optional, lazy) ----------
 
-const MAPS = [
-  { id: 'bakurani', name: 'Bakurani', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/bakurani' },
-  { id: 'ozeti', name: 'Ozeti', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/ozeti' },
-  { id: 'zestafona', name: 'Zestafona', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/zestafona' }
-];
-// Map assets are remote (not bundled, license not MIT). Toggle hidden until
-// first tile confirms availability.
-const ASSET_BASE = 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles';
+// Tile host for the optional map view. Empty by default and therefore off:
+// map imagery is a WARDOGS game asset (not MIT, not bundled here), and the
+// upstream public CDN answers 403 to requests from other origins, so it must
+// not be used as a tile host for this app. Point VITE_TILE_BASE at a host you
+// are allowed to use; it must serve the same layout as the upstream pyramid,
+// <base>/<map>/zoom_<z>/<x>_<y>.webp with zoom 0..7.
+const ASSET_BASE: string = import.meta.env.VITE_TILE_BASE ?? '';
 
+const MAPS = [
+  { id: 'bakurani', name: 'Bakurani' },
+  { id: 'ozeti', name: 'Ozeti' },
+  { id: 'zestafona', name: 'Zestafona' }
+].map((m) => ({ ...m, tilesBase: ASSET_BASE }));
+
+// Toggle stays hidden until a first tile confirms the host actually serves us.
 function checkMapAssets(): void {
+  if (!ASSET_BASE) {
+    els.mapToggle.hidden = true;
+    return;
+  }
   const probe = new Image();
   probe.onload = () => { els.mapToggle.hidden = false; };
   probe.onerror = () => { els.mapToggle.hidden = true; };
-  probe.src = `${ASSET_BASE}/bakurani/0/0/0.webp`;
+  probe.src = `${ASSET_BASE}/bakurani/zoom_0/0_0.webp`;
 }
 
 let mapLoaded = false;

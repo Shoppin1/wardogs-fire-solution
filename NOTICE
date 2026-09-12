@@ -1,0 +1,31 @@
+WARDOGS Feuerleitrechner
+Copyright (c) 2026 Shoppin1
+
+This project is licensed under the MIT License (see LICENSE). The following
+third-party material is redistributed or loaded under separate terms.
+
+1. Firing tables -- data/firing-tables.json
+
+   Derived from https://github.com/apollyon-sys/wardogs-calculator
+   (MIT License, Copyright (c) 2026 Apollyon),
+   commit 7965b3ee5b3b88a3936ffe13a3ce17e92899d793.
+
+2. Terrain heightmaps -- public/terrain/*.png, public/terrain/*.json
+
+   Bundled in this repository. Downsampled (8 m/pixel) from the WARDOGS
+   landscape collision data published by the same upstream project
+   (wardogs-landscape-collision-u16-v1). These are derived from game data and
+   are NOT covered by the MIT License above. Absolute heights use an offset
+   datum, so the app only ever displays the difference between two points
+   (Delta-Z), never an absolute elevation.
+
+3. Map tiles -- not bundled
+
+   The optional map view loads tiles at runtime from the upstream project's
+   asset CDN (assets.wardogs-artillery.com). These are WARDOGS game assets and
+   remain the property of their respective copyright holders. No map imagery is
+   redistributed in this repository, and the service worker does not cache it.
+
+WARDOGS and related names, marks and assets belong to their respective owners.
+This is an unofficial fan tool, not affiliated with, endorsed by or authorised
+by BULKHEAD or Team17.

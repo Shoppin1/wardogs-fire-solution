@@ -20,8 +20,8 @@ Second-Screen-Feuerleitrechner für [WARDOGS](https://store.steampowered.com/app
 - **Gespeicherte Ziele**: benannte Ziele, antippbar laden, Rechtsklick löschen, Export/Import als JSON
 - **Salvo-Planung**: Zielsequenz aufbauen, je Eintrag Richtung/Distanz zur aktuellen Gun, antippbar
 - Verlauf der letzten 5 Ziele als antippbare Chips
-- Optional: Kartenansicht (Bakurani, Ozeti, Zestafona) mit Markern, Verbindungslinie und Reichweitenringen, lazyl geladen. App funktioniert vollständig ohne Karte
-- **PWA**: installierbar auf Handy/Zweitmonitor, App-Shell funktioniert offline (Karte braucht Netz)
+- Optional: Kartenansicht (Bakurani, Ozeti, Zestafona) mit Markern, Verbindungslinie und Reichweitenringen, lazy geladen. **Standardmäßig aus**, weil keine Kartenkacheln mitgeliefert werden (siehe Kartenkacheln). App funktioniert vollständig ohne Karte
+- **PWA**: installierbar auf Handy/Zweitmonitor, App-Shell und ΔZ-Heightmaps funktionieren offline (Kartenkacheln brauchen Netz)
 - Alles lokal (localStorage), kein Tracking, keine Analytics, kein Backend
 
 ## Nutzung
@@ -30,13 +30,36 @@ Feld maske: einfach Ziffern eintippen. `1678` zeigt live `0,01` > `0,16` > `1,67
 
 Sobald alle vier Werte gültig sind, erscheinen Richtung, Distanz und MILS. Außerhalb der Tabellengrenzen: Statusmeldung "Zu nah / Zu weit", kein Wert.
 
-Karte (optional): Toggle "Karte anzeigen". Linksklick setzt das Ziel, Rechtsklick die eigene Position, Marker ziehen aktualisiert die Felder. Karten-Tiles werden remote geladen (siehe Lizenzen).
+Karte (optional): Der Toggle "Karte anzeigen" erscheint nur, wenn ein Tile-Host konfiguriert ist (siehe Kartenkacheln). Dann: Linksklick setzt das Ziel, Rechtsklick die eigene Position, Marker ziehen aktualisiert die Felder.
+
+ΔZ-Anzeige: unabhängig von der Karte. Unter "Karte / Höhen" eine Karte wählen, die Heightmaps liegen im Repo.
+
+## Kartenkacheln
+
+Die Kartenansicht ist standardmäßig aus und der Toggle ausgeblendet: es werden keine Kartenbilder mitgeliefert, und das öffentliche CDN des Quell-Projekts (`assets.wardogs-artillery.com`) beantwortet Anfragen von fremden Origins mit **HTTP 403** (Hotlink-Schutz). Dieses CDN darf deshalb nicht als Tile-Host für diese App verwendet werden.
+
+Wer Karten will, braucht einen eigenen Tile-Host mit demselben Layout wie das Upstream-Pyramid:
+
+```
+<base>/<karte>/zoom_<z>/<x>_<y>.webp     # z = 0..7, 2^z Kacheln je Kante
+```
+
+Die Pyramide deckt den Weltausschnitt X/Y `-0,03 .. 163,81` bzw. `-0,01 .. 163,83` ab (`src/maptiles.ts`). Host beim Build setzen:
+
+```bash
+VITE_TILE_BASE=https://dein-tile-host.example npm run build
+```
+
+Kartenbilder sind WARDOGS-Spielassets und nicht MIT-lizenziert. Vor dem Hosten Rechte klären.
 
 ## Datenquelle und Lizenz
 
-- Feuertabellen: [apollyon-sys/wardogs-calculator](https://github.com/apollyon-sys/wardogs-calculator), Commit `7965b3ee5b3b88a3936ffe13a3ce17e92899d793`, **MIT-Lizenz**, Copyright (c) 2026 Apollyon. Kopie in `data/firing-tables.json`, Schema-Doku in `data/data.schema.md`.
+Kurzfassung hier, vollständige Aufstellung in `NOTICE`.
+
 - Projekt-Code: MIT, siehe `LICENSE`.
-- **WARDOGS-Spielassets (Kartenbilder) sind NICHT unter MIT.** Die Kartenansicht lädt Tiles vom Asset-CDN des Quell-Repos (`assets.wardogs-artillery.com`). Es werden keine Kartenassets in diesem Repo gebündelt. Ohne erreichbares CDN blendet die App den Karten-Toggle automatisch aus, alles andere funktioniert weiter.
+- Feuertabellen: [apollyon-sys/wardogs-calculator](https://github.com/apollyon-sys/wardogs-calculator), Commit `7965b3ee5b3b88a3936ffe13a3ce17e92899d793`, **MIT-Lizenz**, Copyright (c) 2026 Apollyon. Kopie in `data/firing-tables.json`, Schema-Doku in `data/data.schema.md`.
+- **Terrain-Heightmaps (`public/terrain/*.png`) sind im Repo gebündelt und NICHT unter MIT.** Sie sind aus den WARDOGS-Landscape-Collision-Daten des Quell-Projekts abgeleitet (auf 8 m/Pixel heruntergerechnet) und damit Spieldaten. Sie speisen nur die ΔZ-Anzeige; es wird ausschließlich die Differenz zweier Punkte angezeigt, nie eine absolute Höhe.
+- **Kartenkacheln sind NICHT gebündelt, NICHT unter MIT und standardmäßig deaktiviert.** Siehe nächster Abschnitt.
 - Community-Daten, nicht offiziell. Erster Schuss = Einschießen. Höhenunterschied (ΔZ) wird angezeigt, aber nicht automatisch in MILS verrechnet.
 
 ## Entwicklung
@@ -50,12 +73,12 @@ npm run build   # TypeScript-Check + Produktions-Build nach dist/
 
 ## GitHub Pages Deploy
 
-Repo hat einen Workflow (`.github/workflows/deploy.yml`), der bei Push auf `main` testet, baut und nach `gh-pages` published. Aktivierung:
+Repo hat einen Workflow (`.github/workflows/deploy.yml`), der bei Push auf `main` testet, baut und über `actions/deploy-pages` direkt nach GitHub Pages published. Es gibt keinen `gh-pages`-Branch. Aktivierung:
 
-1. Repo-Settings → Pages → Source: **Deploy from a branch** → Branch `gh-pages`, Ordner `/ (root)`
+1. Repo-Settings → Pages → Source: **GitHub Actions**
 2. Nach dem ersten Workflow-Lauf ist die App unter `https://shoppin1.github.io/wardogs-fire-solution/` erreichbar
 
-Ohne Kartenassets: einfach deployen, der Toggle bleibt ausgeblendet, solange das CDN nicht erreichbar ist. Wer die Karten offline bündeln will, muss die Assets selbst hosten und in `src/main.ts` (`MAPS`) die Tile-URLs anpassen, und beachten, dass die Kartenbilder nicht MIT-lizenziert sind.
+Ohne konfigurierten Tile-Host: einfach deployen, der Karten-Toggle bleibt ausgeblendet, der Rest inklusive ΔZ funktioniert.
 
 ## Feuertabellen nach Game-Patch aktualisieren
 
@@ -67,5 +90,7 @@ Die Tabellen sind Beta-Community-Daten und können sich ändern:
 4. `npm test` laufen lassen (Tests prüfen Tabellen-Grenzen und Interpolation)
 
 ## Rechtliches
+
+Siehe `NOTICE` für die vollständige Herkunfts- und Lizenzaufstellung aller Fremddaten.
 
 Inoffizielles Fan-Tool für WARDOGS. Nicht verbunden mit, unterstützt von oder autorisiert durch BULKHEAD oder Team17. WARDOGS und verwandte Namen, Marken und Assets gehören ihren jeweiligen Eigentümern. Reines Second-Screen-Werkzeug mit manueller Eingabe, keine Spielprozess-Interaktion (EULA).

@@ -1,4 +1,4 @@
-// Optional map view: Leaflet with CRS.Simple, remote tiles from the
+// Optional map view: Leaflet with a game-unit CRS, remote tiles from the
 // wardogs-calculator asset CDN (NOT bundled, game assets are not MIT).
 // Lazy-loaded via dynamic import; the app works fully without this module.
 
@@ -8,11 +8,12 @@ import type { Pos } from './calc';
 import { arcBounds } from './calc';
 import { formatGame } from './coords';
 import { getWeapon } from './data';
+import { MAX_TILE_ZOOM, SX, SY, TILE_BOUNDS, TILE_SIZE, tileUrlTemplate } from './maptiles';
 
 export interface MapConfig {
   id: string;
   name: string;
-  tiles: string;
+  tilesBase: string;
 }
 
 export interface MapViewOptions {
@@ -29,17 +30,22 @@ export interface MapViewOptions {
   onMapChange?: (mapId: string) => void;
 }
 
-const TILE_SIZE = 256;
-const MAP_SPAN = 163.84; // game units across full map edge
+// Custom CRS so that Leaflet zoom N maps 1:1 onto the pyramid's zoom_N:
+// at zoom 0 the whole pyramid extent is exactly one 256 px tile (see
+// maptiles.ts, whose gameToPixel is the same mapping in plain arithmetic).
+// lat/lng are game units directly (lat = game Y, lng = game X); the
+// transformation flips Y, since game Y grows north and pixels grow down.
+const GAME_CRS = L.extend({}, L.CRS.Simple, {
+  transformation: new L.Transformation(SX, -TILE_BOUNDS.minX * SX, -SY, TILE_BOUNDS.maxY * SY)
+}) as L.CRS;
 
-// Game coordinates to Leaflet CRS.Simple coordinates.
-// Game: origin bottom-left, +Y north/up. Leaflet: y grows downward.
+// Game coordinates to Leaflet coordinates (identity, the CRS does the work).
 function gameToLatLng(x: number, y: number): L.LatLng {
-  return L.latLng(MAP_SPAN - y, x);
+  return L.latLng(y, x);
 }
 
 function latLngToGame(lat: number, lng: number): Pos {
-  return { x: lng, y: MAP_SPAN - lat };
+  return { x: lng, y: lat };
 }
 
 export function createMapView(opts: MapViewOptions): {
@@ -78,9 +84,9 @@ export function createMapView(opts: MapViewOptions): {
   function initMap(): void {
     if (map) return;
     map = L.map(mapHost, {
-      crs: L.CRS.Simple,
+      crs: GAME_CRS,
       minZoom: 0,
-      maxZoom: 7,
+      maxZoom: MAX_TILE_ZOOM,
       zoomControl: true,
       attributionControl: false
     });
@@ -106,15 +112,15 @@ export function createMapView(opts: MapViewOptions): {
     currentMapId = mapId;
     if (tileLayer) tileLayer.remove();
     const cfg = maps.find((m) => m.id === mapId)!;
-    tileLayer = L.tileLayer(`${cfg.tiles}/{z}/{x}/{y}.webp`, {
-      // CRS.Simple tiles: z/x/y from the upstream asset layout.
+    tileLayer = L.tileLayer(tileUrlTemplate(cfg.tilesBase, cfg.id), {
+      // Upstream asset layout: <map>/zoom_<z>/<x>_<y>.webp, 2^z tiles per side.
       tileSize: TILE_SIZE,
       minZoom: 0,
-      maxZoom: 7,
+      maxZoom: MAX_TILE_ZOOM,
       noWrap: true,
       bounds: L.latLngBounds(
-        gameToLatLng(-0.03, -0.01),
-        gameToLatLng(163.83, 163.85)
+        gameToLatLng(TILE_BOUNDS.minX, TILE_BOUNDS.minY),
+        gameToLatLng(TILE_BOUNDS.maxX, TILE_BOUNDS.maxY)
       )
     }).addTo(map);
   }
@@ -174,7 +180,8 @@ export function createMapView(opts: MapViewOptions): {
           shown.add(r);
           rings.push(
             L.circle(gameToLatLng(gun.x, gun.y), {
-              radius: r, // meters
+              // CRS distance is in game units, and 1 game unit is 100 m.
+              radius: r / 100,
               color: r === minM ? '#f87171' : '#38bdf8',
               weight: 1,
               fill: false,
