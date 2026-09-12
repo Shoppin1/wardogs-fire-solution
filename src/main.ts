@@ -8,6 +8,7 @@ import { loadState, saveState, DEFAULT_STATE, type PersistedState } from './stor
 import { posToShareString, copyText } from './clipboard';
 import { computeImpactCorrection, impactCorrectionText } from './impact';
 import { loadTerrain, terrainAvailable, deltaZ } from './terrain';
+import { BUNDLED_MAX_ZOOM, MAX_TILE_ZOOM } from './maptiles';
 
 // Field model: each coordinate input keeps a digit buffer for the ATM mask.
 interface CoordField {
@@ -797,20 +798,27 @@ function updateDeltaZ(): void {
 
 // ---------- Map (optional, lazy) ----------
 
-const MAPS = [
-  { id: 'bakurani', name: 'Bakurani', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/bakurani' },
-  { id: 'ozeti', name: 'Ozeti', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/ozeti' },
-  { id: 'zestafona', name: 'Zestafona', tiles: 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles/zestafona' }
-];
-// Map assets are remote (not bundled, license not MIT). Toggle hidden until
-// first tile confirms availability.
-const ASSET_BASE = 'https://assets.wardogs-artillery.com/releases/assets-v1/maps/tiles';
+// Tiles are served from public/tiles by default, bundled down to
+// BUNDLED_MAX_ZOOM (see scripts/download-tiles.py). The upstream CDN answers
+// 403 to other origins and must not be used as a tile host for this app; if
+// you have a host of your own serving the full pyramid, point VITE_TILE_BASE
+// at it. Layout either way: <base>/<map>/zoom_<z>/<x>_<y>.webp.
+const CUSTOM_TILE_BASE: string = import.meta.env.VITE_TILE_BASE ?? '';
+const ASSET_BASE = CUSTOM_TILE_BASE || `${import.meta.env.BASE_URL}tiles`;
+const TILE_MAX_NATIVE_ZOOM = CUSTOM_TILE_BASE ? MAX_TILE_ZOOM : BUNDLED_MAX_ZOOM;
 
+const MAPS = [
+  { id: 'bakurani', name: 'Bakurani' },
+  { id: 'ozeti', name: 'Ozeti' },
+  { id: 'zestafona', name: 'Zestafona' }
+].map((m) => ({ ...m, tilesBase: ASSET_BASE }));
+
+// Toggle stays hidden until a first tile confirms the host actually serves us.
 function checkMapAssets(): void {
   const probe = new Image();
   probe.onload = () => { els.mapToggle.hidden = false; };
   probe.onerror = () => { els.mapToggle.hidden = true; };
-  probe.src = `${ASSET_BASE}/bakurani/0/0/0.webp`;
+  probe.src = `${ASSET_BASE}/bakurani/zoom_0/0_0.webp`;
 }
 
 let mapLoaded = false;
@@ -826,6 +834,7 @@ async function loadMap(): Promise<void> {
     cursorEl: els.mapCursor as HTMLElement,
     selectEl: els.mapSelect as HTMLSelectElement,
     maps: MAPS,
+    maxNativeZoom: TILE_MAX_NATIVE_ZOOM,
     getGun: currentGun,
     getTarget: currentTarget,
     onTargetPick: (p: Pos) => {
